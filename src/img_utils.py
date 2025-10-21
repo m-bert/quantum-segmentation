@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 def load_image(path):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return np.array(img, dtype=np.int16)
+    
+    return np.array(img, dtype=np.int64)
 
 def draw_image(img, path_to_save = None):
     plt.imshow(img)
