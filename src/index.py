@@ -7,9 +7,6 @@ from img_utils import load_image, create_image_from_graph, draw_image
 from graph_utils import convert_to_graph, visualize_graph
 from file_utils import get_imgs_names, maybe_create_output_dir
 
-IMG_NAME = "4"
-IMG_PATH = f"img/{IMG_NAME}.png"
-
 BETA = 50
 
 def process_image(img_name):
