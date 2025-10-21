@@ -65,4 +65,12 @@ def convert_to_graph(img, beta):
                 weight = edge_weight(img[y, x], img[y-1, x], max_distance, beta)
                 G.add_edge((x, y), (x, y-1), weight=weight)
 
+            if x > 0 and y > 0:
+                weight = edge_weight(img[y, x], img[y-1, x-1], max_distance, beta)
+                G.add_edge((x, y), (x-1, y-1), weight=weight)
+
+            if x < img.shape[0] - 1 and y > 0:
+                weight = edge_weight(img[y, x], img[y-1, x+1], max_distance, beta)
+                G.add_edge((x, y), (x+1, y-1), weight=weight)
+
     return G

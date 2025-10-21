@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def load_image(path):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    
+
     return np.array(img, dtype=np.int64)
 
 def draw_image(img, path_to_save = None):
@@ -24,18 +24,31 @@ def pixels_distance(p1, p2):
     return np.sum((p1 - p2) ** 2)
 
 def find_max_distance(img):
-    current_right = img[:, :-1]
-    neighbor_right = img[:, 1:]
+    max_distance = -1
 
-    current_down = img[:-1, :]
-    neighbor_down = img[1:, :]
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            if x > 0:
+                dist = pixels_distance(img[y][x], img[y][x - 1])
+                if dist > max_distance:
+                    max_distance = dist
 
-    d_vec = np.vectorize(pixels_distance, signature='(n),(n)->()')
+            if y > 0:
+                dist = pixels_distance(img[y][x], img[y - 1][x])
+                if dist > max_distance:
+                    max_distance = dist
 
-    right_distances = d_vec(current_right, neighbor_right)
-    down_distances  = d_vec(current_down, neighbor_down)
+            if x > 0 and y > 0:
+                dist = pixels_distance(img[y][x], img[y - 1][x - 1])
+                if dist > max_distance:
+                    max_distance = dist
 
-    return max(right_distances.max(), down_distances.max())
+            if x < img.shape[1] - 1 and y > 0:
+                dist = pixels_distance(img[y][x], img[y - 1][x + 1])
+                if dist > max_distance:
+                    max_distance = dist
+
+    return max_distance
 
 def create_image_from_graph(graph, size):
     img = np.zeros((size[1], size[0], 3), dtype=np.uint8)
