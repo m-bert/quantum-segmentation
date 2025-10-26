@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 
 from img_utils import load_image, create_image_from_graph, draw_image
-from graph_utils import convert_to_graph, visualize_graph
+from graph_utils import convert_to_graph, visualize_graph, convert_communities_to_graph
 from file_utils import get_imgs_names, maybe_create_output_dir
 
 BETA = 100
@@ -15,17 +15,25 @@ def process_image(img_name):
 
     graph = convert_to_graph(img, BETA)
 
-    visualize_graph(graph, (img.shape[1], img.shape[0]), f"out/{img_name}/graph.png")
+    # visualize_graph(graph, (img.shape[1], img.shape[0]), f"out/{img_name}/graph.png")
 
     communities = nx.community.louvain_communities(graph, resolution=0.05)
 
-    for community in communities:
+    communities_graph = convert_communities_to_graph(communities, img, BETA)
+
+    new_communities = nx.community.louvain_communities(communities_graph, resolution=1)
+
+
+    for community in new_communities:
         community_color = np.random.randint(0, 255, size=3)
         
         for node in community:
-            graph.nodes[node]['color'] = community_color
+            for original_node in communities[node]:
+                graph.nodes[original_node]['color'] = community_color
 
-    visualize_graph(graph, (img.shape[1], img.shape[0]), f"out/{img_name}/segmented_graph.png")
+
+
+    # visualize_graph(graph, (img.shape[1], img.shape[0]), f"out/{img_name}/segmented_graph.png")
 
     new_img = create_image_from_graph(graph, (img.shape[1], img.shape[0]))
 
@@ -35,7 +43,7 @@ def process_image(img_name):
 if __name__ == "__main__":
     maybe_create_output_dir("./out")
     
-    process_image("3")
+    process_image("6")
     # imgs_names = get_imgs_names("./img")
 
     # for img_name in imgs_names:

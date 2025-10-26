@@ -74,3 +74,47 @@ def convert_to_graph(img, beta):
                 G.add_edge((x, y), (x+1, y-1), weight=weight)
 
     return G
+
+def convert_communities_to_graph(communities, img, beta):
+    G = nx.Graph()
+    max_distance = find_max_distance(img)
+
+
+    for i, community in enumerate(communities):
+        first_node = next(iter(community))
+        G.add_node(i, color=img[first_node[1], first_node[0]])
+
+    for i in range(len(communities)):
+        for j in range(i + 1, len(communities)):
+            weight = edge_weight(G.nodes[i]['color'], G.nodes[j]['color'], max_distance, beta)
+            G.add_edge(i, j, weight=weight)
+
+
+    # node_colors = [
+    #     tuple([v / 255 for v in G.nodes[n]['color']])
+    #     for n in G.nodes
+    # ] if 'color' in next(iter(G.nodes(data=True)))[1] else 'lightblue'
+
+    # nx.draw(
+    #     G,
+    #     node_color=node_colors,
+    #     node_size=200,
+    #     edge_color='gray',
+    #     with_labels=True,
+    #     font_size = 6
+    # )
+
+    # edge_labels = {edge: round(weight, 5) for edge, weight in nx.get_edge_attributes(G, 'weight').items()}
+
+    # nx.draw_networkx_edge_labels(
+    #     G,
+    #     pos=nx.spring_layout(G),
+    #     edge_labels=edge_labels,
+    #     font_size=6
+    # )
+
+    # plt.axis("equal")
+
+    # plt.show()
+
+    return G
