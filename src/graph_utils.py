@@ -66,7 +66,10 @@ def convert_to_graph(img, beta):
             if (v == u):
                 continue
 
-            weight = edge_weight(v, u, max_distance, beta)
+            x1, y1 = v % img.shape[1], v // img.shape[0]
+            x2, y2 = u % img.shape[1], u // img.shape[0]
+
+            weight = edge_weight(img[y1, x1], img[y2, x2], max_distance, beta)
             G.add_edge(v, u, weight=weight)
 
     return G
