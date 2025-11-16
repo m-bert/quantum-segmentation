@@ -7,7 +7,7 @@ from img_utils import pixels_distance, find_max_distance
 def visualize_graph(graph, size, path_to_save = None):
     rows, cols = size
 
-    nodes_positions = {(c, r): (c, -r) for r in range(rows) for c in range(cols)}
+    nodes_positions = {r * rows + c: (c, -r) for r in range(rows) for c in range(cols)}
 
     plt.figure(figsize=(9, 9))
 
@@ -53,17 +53,20 @@ def convert_to_graph(img, beta):
 
     G = nx.Graph()
 
+    node_id = 0
+
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
-            G.add_node((x, y), color=tuple(img[y, x]))
+            G.add_node(node_id, color=tuple(img[y, x]))
 
-    for (x, y) in G.nodes:
-        for y_2 in range(y, img.shape[0]):
-            for x_2 in range(x, img.shape[1]):
-                if (x == x_2 and y == y_2):
-                    continue
+            node_id += 1
 
-                weight = edge_weight(img[y, x], img[y_2, x_2], max_distance, beta)
-                G.add_edge((x, y), (x_2, y_2), weight=weight)
+    for v in G.nodes:
+        for u in G.nodes:
+            if (v == u):
+                continue
+
+            weight = edge_weight(v, u, max_distance, beta)
+            G.add_edge(v, u, weight=weight)
 
     return G
