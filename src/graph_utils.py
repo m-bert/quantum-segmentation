@@ -7,7 +7,7 @@ from img_utils import pixels_distance, find_max_distance
 def visualize_graph(graph, size, path_to_save = None):
     rows, cols = size
 
-    nodes_positions = {(c, r): (c, -r) for r in range(rows) for c in range(cols)}
+    nodes_positions = {r * rows + c: (c, -r) for r in range(rows) for c in range(cols)}
 
     plt.figure(figsize=(9, 9))
 
@@ -53,24 +53,32 @@ def convert_to_graph(img, beta):
 
     G = nx.Graph()
 
+    node_id = 0
+
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
-            G.add_node((x, y), color=tuple(img[y, x]))
+            G.add_node(node_id, color=tuple(img[y, x]))
 
             if x > 0:
                 weight = edge_weight(img[y, x], img[y, x-1], max_distance, beta)
-                G.add_edge((x, y), (x-1, y), weight=weight)
+                prev_node_id = y * img.shape[1] + (x - 1)
+                G.add_edge(node_id, prev_node_id, weight=weight)
 
             if y > 0:
                 weight = edge_weight(img[y, x], img[y-1, x], max_distance, beta)
-                G.add_edge((x, y), (x, y-1), weight=weight)
+                prev_node_id = (y - 1) * img.shape[1] + x
+                G.add_edge(node_id, prev_node_id, weight=weight)
 
             if x > 0 and y > 0:
                 weight = edge_weight(img[y, x], img[y-1, x-1], max_distance, beta)
-                G.add_edge((x, y), (x-1, y-1), weight=weight)
+                prev_node_id = (y - 1) * img.shape[1] + (x - 1)
+                G.add_edge(node_id, prev_node_id, weight=weight)
 
             if x < img.shape[0] - 1 and y > 0:
                 weight = edge_weight(img[y, x], img[y-1, x+1], max_distance, beta)
-                G.add_edge((x, y), (x+1, y-1), weight=weight)
+                prev_node_id = (y - 1) * img.shape[1] + (x + 1)
+                G.add_edge(node_id, prev_node_id, weight=weight)
+            
+            node_id += 1
 
     return G
