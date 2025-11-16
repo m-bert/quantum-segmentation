@@ -59,26 +59,17 @@ def convert_to_graph(img, beta):
         for x in range(img.shape[1]):
             G.add_node(node_id, color=tuple(img[y, x]))
 
-            if x > 0:
-                weight = edge_weight(img[y, x], img[y, x-1], max_distance, beta)
-                prev_node_id = y * img.shape[1] + (x - 1)
-                G.add_edge(node_id, prev_node_id, weight=weight)
-
-            if y > 0:
-                weight = edge_weight(img[y, x], img[y-1, x], max_distance, beta)
-                prev_node_id = (y - 1) * img.shape[1] + x
-                G.add_edge(node_id, prev_node_id, weight=weight)
-
-            if x > 0 and y > 0:
-                weight = edge_weight(img[y, x], img[y-1, x-1], max_distance, beta)
-                prev_node_id = (y - 1) * img.shape[1] + (x - 1)
-                G.add_edge(node_id, prev_node_id, weight=weight)
-
-            if x < img.shape[0] - 1 and y > 0:
-                weight = edge_weight(img[y, x], img[y-1, x+1], max_distance, beta)
-                prev_node_id = (y - 1) * img.shape[1] + (x + 1)
-                G.add_edge(node_id, prev_node_id, weight=weight)
-            
             node_id += 1
+
+    for v in G.nodes:
+        for u in G.nodes:
+            if (v == u):
+                continue
+
+            x1, y1 = v % img.shape[1], v // img.shape[0]
+            x2, y2 = u % img.shape[1], u // img.shape[0]
+
+            weight = edge_weight(img[y1, x1], img[y2, x2], max_distance, beta)
+            G.add_edge(v, u, weight=weight)
 
     return G

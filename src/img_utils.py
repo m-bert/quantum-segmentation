@@ -53,13 +53,7 @@ def find_max_distance(img):
 def create_image_from_graph(graph, size):
     img = np.zeros((size[0], size[1], 3), dtype=np.uint8)
 
-    for v, data in graph.nodes(data=True):
-        x = v % size[1]
-        y = v // size[0]
-        
-        img[y][x] = data['color'] if 'color' in data else (255, 255, 255)
-
     for v in graph.nodes:
-        img[v % size[0]][v // size[1]] = graph.nodes[v]['color']
+        img[v // size[0]][v % size[1]] = graph.nodes[v]['color']
 
     return img

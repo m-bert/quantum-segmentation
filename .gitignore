@@ -209,3 +209,5 @@ __marimo__/
 .DS_Store
 
 out
+qommunity_outputs
+src/Qommunity
