@@ -1,13 +1,14 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+import itertools
 
 from img_utils import pixels_distance, find_max_distance
 
 def visualize_graph(graph, size, path_to_save = None):
     rows, cols = size
 
-    nodes_positions = {r * rows + c: (c, -r) for r in range(rows) for c in range(cols)}
+    nodes_positions = {r * cols + c: (c, -r) for c in range(cols) for r in range(rows) }
 
     plt.figure(figsize=(9, 9))
 
@@ -61,15 +62,14 @@ def convert_to_graph(img, beta):
 
             node_id += 1
 
-    for v in G.nodes:
-        for u in G.nodes:
-            if (v == u):
-                continue
+    n = len(G.nodes)
 
-            x1, y1 = v % img.shape[1], v // img.shape[0]
-            x2, y2 = u % img.shape[1], u // img.shape[0]
+    # Use itertools.combinations to generate unique node pairs
+    for v, u in itertools.combinations(range(n), 2):
+        x1, y1 = v % img.shape[1], v // img.shape[1]
+        x2, y2 = u % img.shape[1], u // img.shape[1]
 
-            weight = edge_weight(img[y1, x1], img[y2, x2], max_distance, beta)
-            G.add_edge(v, u, weight=weight)
+        weight = edge_weight(img[y1, x1], img[y2, x2], max_distance, beta)
+        G.add_edge(v, u, weight=weight)
 
     return G

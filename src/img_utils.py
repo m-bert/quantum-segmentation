@@ -54,6 +54,6 @@ def create_image_from_graph(graph, size):
     img = np.zeros((size[0], size[1], 3), dtype=np.uint8)
 
     for v in graph.nodes:
-        img[v // size[0]][v % size[1]] = graph.nodes[v]['color']
+        img[v // size[1]][v % size[1]] = graph.nodes[v]['color']
 
     return img
