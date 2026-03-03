@@ -7,7 +7,7 @@ from scipy.optimize import differential_evolution
 
 import networkx as nx
 
-img_name = "big"
+img_name = "real/brain"
 img = load_image(f"./img/{img_name}.png")
 
 def ground_truth_communities():
@@ -27,12 +27,12 @@ def ground_truth_communities():
     return list(communities.values())
 
 def f(params):
-    beta, resolution = params
+    beta = params
 
     ground_truth = ground_truth_communities()
     
     graph = convert_to_graph(img, beta)
-    communities = nx.community.louvain_communities(graph, resolution=resolution)
+    communities = nx.community.louvain_communities(graph, resolution=1)
 
     diff = np.abs(len(ground_truth) - len(communities))
 
@@ -44,12 +44,10 @@ def f(params):
     
     nmi = normalized_mutual_info_score(ground_truth, communities)
 
-    # Penalize large differences in number of communities
-    return -nmi + 0.1 * diff
+    return -nmi 
 
 
 
-result = differential_evolution(f, bounds=[(100, 1000),(0.5, 0.6)])
+result = differential_evolution(f, bounds=[(100, 1000)])
 print("=== Optimal parameters ===")
 print(f"Beta: {result.x[0]}")
-print(f"Gamma: {result.x[1]}")
