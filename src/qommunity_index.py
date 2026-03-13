@@ -1,5 +1,8 @@
 import os
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import networkx as nx
 
@@ -15,6 +18,8 @@ from Qommunity.samplers.hierarchical.advantage_sampler import AdvantageSampler
 from Qommunity.searchers.hierarchical_searcher import (
     HierarchicalSearcher,
 )
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 # BETA = 100
 BETA = 900

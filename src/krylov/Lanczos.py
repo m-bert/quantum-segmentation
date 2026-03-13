@@ -1,6 +1,9 @@
 import os
 import time
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -9,6 +12,7 @@ from scipy.linalg import eig
 from utils.img_utils import load_image, create_image_from_graph
 from utils.graph_utils import convert_to_graph
 
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # -------------------------------------------------
 # Leading eigenvector (true solution – bez zmian)
@@ -264,7 +268,7 @@ def segment_image(img, resolution=1, beta=100, min_M=1, max_M=60, minimum=False,
 
 if __name__ == "__main__":
     img_name = "80x80_low_contrast_blue.png"
-    path = os.path.join(os.path.dirname(__file__), "../img", "two_comm", img_name)
+    path = os.path.join(os.path.dirname(__file__), "../../img", "two_comm", img_name)
 
     # img_name = "two_comms_40x40.png"
     # path = os.path.join(os.path.dirname(__file__), "../img", img_name)

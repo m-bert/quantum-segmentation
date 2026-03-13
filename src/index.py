@@ -1,11 +1,16 @@
 import os
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import networkx as nx
 
 from utils.img_utils import load_image, create_image_from_graph, draw_image
 from utils.graph_utils import convert_to_graph, visualize_graph
 from utils.file_utils import get_imgs_names, maybe_create_output_dir
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 BETA = 472
 GAMMA = 1

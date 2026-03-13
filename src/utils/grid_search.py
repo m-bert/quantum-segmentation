@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 from utils.img_utils import load_image
 from utils.graph_utils import convert_to_graph
 
@@ -6,6 +9,8 @@ from sklearn.metrics import normalized_mutual_info_score
 from scipy.optimize import differential_evolution
 
 import networkx as nx
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 img_name = "real/brain"
 img = load_image(f"./img/{img_name}.png")

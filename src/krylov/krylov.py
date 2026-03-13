@@ -2,6 +2,9 @@ import os
 import time
 from enum import Enum
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,6 +13,7 @@ from scipy.linalg import eig
 from utils.img_utils import load_image, create_image_from_graph
 from utils.graph_utils import convert_to_graph
 
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 class Mode(Enum):
     GRAM_SCHMIDT = "gram_schmidt"
     LANCZOS = "lanczos"
