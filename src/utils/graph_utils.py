@@ -3,7 +3,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools
 
-from img_utils import pixels_distance, find_max_distance
+from utils.img_utils import pixels_distance, find_max_distance
 
 def visualize_graph(graph, size, path_to_save = None):
     rows, cols = size

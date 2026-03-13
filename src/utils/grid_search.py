@@ -1,5 +1,5 @@
-from img_utils import load_image
-from graph_utils import convert_to_graph
+from utils.img_utils import load_image
+from utils.graph_utils import convert_to_graph
 
 import numpy as np
 from sklearn.metrics import normalized_mutual_info_score

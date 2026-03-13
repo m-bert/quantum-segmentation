@@ -1,18 +1,18 @@
 import os
 import time
-from enum import Enum
 
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.linalg import eig
 
-from img_utils import load_image, create_image_from_graph
-from graph_utils import convert_to_graph
+from utils.img_utils import load_image, create_image_from_graph
+from utils.graph_utils import convert_to_graph
 
-class Mode(Enum):
-    GRAM_SCHMIDT = "gram_schmidt"
-    LANCZOS = "lanczos"
+
+# -------------------------------------------------
+# Leading eigenvector (true solution – bez zmian)
+# -------------------------------------------------
 
 def leading_eigenvector(B):
     eigvals_B, eigvecs_B = eig(B)
@@ -35,6 +35,11 @@ def leading_eigenvector(B):
         "Energy": partition.T @ B @ partition,
     }
 
+
+# -------------------------------------------------
+# Modularity matrix
+# -------------------------------------------------
+
 def create_B(G, resolution=1, norm=False):
     A = nx.to_numpy_array(G)
     g = A.sum(axis=1)
@@ -48,6 +53,11 @@ def create_B(G, resolution=1, norm=False):
         B = D_inv_sqrt @ B @ D_inv_sqrt
 
     return B, m
+
+
+# -------------------------------------------------
+# LANCZOS (zamiast Gram-Schmidt)
+# -------------------------------------------------
 
 def lanczos(B, v0, k):
     n = len(v0)
@@ -78,30 +88,26 @@ def lanczos(B, v0, k):
 
     return V, alpha, beta
 
-def gram_schmidt(N, v0, B):
-    V_TOT = np.zeros((N, N))
-    V_TOT[:, 0] = v0
 
-    V_TOT = np.zeros((N, N))
-    V_TOT[:, 0] = v0
-    for i in range(1, N):
-        w = B @ V_TOT[:, i-1]
-        for j in range(i):
-            w -= np.dot(V_TOT[:, j], w) * V_TOT[:, j]
-        V_TOT[:, i] = w / np.linalg.norm(w)
+# -------------------------------------------------
+# Krylov iteration (teraz budujemy tylko M kroków)
+# -------------------------------------------------
 
-    return V_TOT
+def krylov_iteration(B, M):
+    print("Iteration with M =", M)
 
-def krylov_iteration(B, M, V_TOT):
-    B_red = None
+    N = B.shape[0]
+    v0 = np.random.rand(N)
 
-    if V_TOT is None:
-        v0 = np.random.rand(B.shape[0])
-        V, _, _ = lanczos(B, v0, M)
-        B_red = V.T @ B @ V
-    else:
-        V = V_TOT[:,:M]
-        B_red = V.T @ B @ V
+    t1 = time.perf_counter()
+    V, _, _ = lanczos(B, v0, M)
+    t2 = time.perf_counter()
+    print(f"Lanczos time: {t2 - t1:.4f} s")
+
+    t3 = time.perf_counter()
+    B_red = V.T @ B @ V
+    t4 = time.perf_counter()
+    print(f"B_red computation: {t4 - t3:.4f} s")
 
     eigvals_red, eigvecs_red = eig(B_red)
     eigvals_red = eigvals_red.real
@@ -110,6 +116,7 @@ def krylov_iteration(B, M, V_TOT):
     idx = np.argsort(eigvals_red)
     v_max_red = eigvecs_red[:, idx[-1]]
 
+    # symulacja annealera
     v_max_red_prime = np.sign(v_max_red)
 
     vr = V @ v_max_red_prime
@@ -127,24 +134,19 @@ def krylov_iteration(B, M, V_TOT):
 
     return energy, division
 
-def krylov_reconstruction(B, min_M, max_M, mode):
+
+# -------------------------------------------------
+# Krylov reconstruction
+# -------------------------------------------------
+
+def krylov_reconstruction(B, min_M, max_M):
     start_time = time.perf_counter()
 
     energies = []
     divisions = []
 
-    V_TOT = None
-
-    if mode == Mode.GRAM_SCHMIDT:
-        N = len(B)
-
-        v0 = np.random.rand(N)
-        v0 = v0 / np.linalg.norm(v0)
-
-        V_TOT = gram_schmidt(N, v0, B)
-
     for M in range(min_M, max_M + 1):
-        energy, division = krylov_iteration(B, M, V_TOT)
+        energy, division = krylov_iteration(B, M)
         energies.append(energy)
         divisions.append(division)
 
@@ -156,7 +158,12 @@ def krylov_reconstruction(B, min_M, max_M, mode):
         "Reconstructed divisions": divisions,
     }
 
-def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mode.LANCZOS):
+
+# -------------------------------------------------
+# Average over trials
+# -------------------------------------------------
+
+def calculate_average_results(B, min_M, max_M, minimum=True, trials=50):
     M = max_M - min_M + 1
     sign = -1 if minimum else 1
 
@@ -169,7 +176,7 @@ def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mod
     communities = None
 
     for _ in range(trials):
-        approx_solution = krylov_reconstruction(B, min_M, max_M, mode)
+        approx_solution = krylov_reconstruction(B, min_M, max_M)
 
         energy = sign * np.array(approx_solution["Energies"])
         energies += energy
@@ -198,7 +205,7 @@ def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mod
 # Plot
 # -------------------------------------------------
 
-def plot_average_results(min_M, max_M, energies, energy_true, best_energies):
+def plot_average_results(min_M, max_M, energies, energy_true, best_energies, minimum=True):
     fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
     ax.plot(range(min_M, max_M + 1), energies, '-o', markersize=2, label="Average")
@@ -230,16 +237,16 @@ def plot_images(original_img, segmented_img):
 # Main segmentation
 # -------------------------------------------------
 
-def segment_image(img, resolution=1, beta=100, min_M=1, max_M=60, minimum=False, trials=50, mode=Mode.LANCZOS):
+def segment_image(img, resolution=1, beta=100, min_M=1, max_M=60, minimum=False, trials=50):
     graph = convert_to_graph(img, beta)
 
     B, _ = create_B(graph, resolution=resolution, norm=False)
 
     energies, energy_true, best_energies, communities = calculate_average_results(
-        B, min_M, max_M, minimum, trials, mode
+        B, min_M, max_M, minimum, trials
     )
 
-    fig, ax = plot_average_results(min_M, max_M, energies, energy_true, best_energies)
+    fig, ax = plot_average_results(min_M, max_M, energies, energy_true, best_energies, minimum)
 
     for community in communities:
         community_color = np.random.randint(0, 255, size=3)
@@ -256,18 +263,18 @@ def segment_image(img, resolution=1, beta=100, min_M=1, max_M=60, minimum=False,
 # -------------------------------------------------
 
 if __name__ == "__main__":
-    # img_name = "80x80_low_contrast_blue.png"
-    # path = os.path.join(os.path.dirname(__file__), "../img", "two_comm", img_name)
+    img_name = "80x80_low_contrast_blue.png"
+    path = os.path.join(os.path.dirname(__file__), "../img", "two_comm", img_name)
 
-    img_name = "two_comms_40x40.png"
-    path = os.path.join(os.path.dirname(__file__), "../img", img_name)
+    # img_name = "two_comms_40x40.png"
+    # path = os.path.join(os.path.dirname(__file__), "../img", img_name)
 
     # img_name = "cube.png"
     # path = os.path.join(os.path.dirname(__file__), "../img", "two_comm", img_name)
 
     t1 = time.perf_counter()
     img = load_image(path)
-    segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
+    segmented_img, energy_fig, energy_ax = segment_image(img, trials=1)
     t2 = time.perf_counter()
 
     print(f"Total segmentation time: {t2 - t1:.4f} seconds")

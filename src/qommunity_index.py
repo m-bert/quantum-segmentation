@@ -3,9 +3,9 @@ import os
 import numpy as np
 import networkx as nx
 
-from img_utils import load_image, create_image_from_graph, draw_image
-from graph_utils import convert_to_graph, visualize_graph
-from file_utils import get_imgs_names, maybe_create_output_dir
+from utils.img_utils import load_image, create_image_from_graph, draw_image
+from utils.graph_utils import convert_to_graph, visualize_graph
+from utils.file_utils import get_imgs_names, maybe_create_output_dir
 
 from Qommunity.samplers.regular.dqm_sampler import DQMSampler
 from Qommunity.samplers.regular.louvain_sampler import LouvainSampler

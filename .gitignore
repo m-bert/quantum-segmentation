@@ -209,5 +209,10 @@ __marimo__/
 .DS_Store
 
 out
+q_out
 qommunity_outputs
 src/Qommunity
+
+trash/
+
+img/real
