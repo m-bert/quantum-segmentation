@@ -186,8 +186,11 @@ def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mod
     M = max_M - min_M + 1
     sign = -1 if minimum else 1
 
+    number_of_edges = size * (size - 1) / 2 if size is not None else None
+    modularity_scale = 1 / (2 * number_of_edges) if number_of_edges is not None else 1
+
     true_solution = leading_eigenvector(B)
-    energy_true = sign * np.array(true_solution["Energy"])
+    energy_true = sign * modularity_scale * np.array(true_solution["Energy"])
 
     energies = np.zeros(M)
     best_energy = -sign * (10**10)
@@ -204,7 +207,7 @@ def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mod
         with open(f"results.csv", "a") as f:
             f.write(f"{size};{mode.name};{t2 - t1:.4f}\n")
 
-        energy = sign * np.array(approx_solution["Energies"])
+        energy = sign * modularity_scale * np.array(approx_solution["Energies"])
         energies += energy
 
         if minimum:
@@ -236,14 +239,14 @@ def plot_average_results(min_M, max_M, energies, energy_true, best_energies):
 
     ax.plot(range(min_M, max_M + 1), energies, '-o', markersize=2, label="Average")
     ax.plot(range(min_M, max_M + 1), best_energies, '-x', markersize=2, label='Best trial')
-    ax.plot([0, max_M], [energy_true, energy_true], '--', linewidth=1, label='True energy')
+    ax.plot([0, max_M], [energy_true, energy_true], '--', linewidth=1, label='Baseline modularity')
     ax.plot([0, max_M], [0, 0], '-', linewidth=.5)
 
     ax.set_xlabel("M")
-    ax.set_ylabel("Energy")
+    ax.set_ylabel("Modularity")
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(frameon=False)
-    ax.set_title("Energy vs Krylov subspace dimension")
+    ax.set_title("Modularity vs Krylov subspace dimension")
 
     fig.tight_layout()
     return fig, ax
