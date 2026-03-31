@@ -89,13 +89,10 @@ def lanczos(B, v0, k):
 
     return V, alpha, beta
 
-def gram_schmidt(N, v0, B):
-    V_TOT = np.zeros((N, N))
+def gram_schmidt(N, v0, B, M):
+    V_TOT = np.zeros((N, M))
     V_TOT[:, 0] = v0
-
-    V_TOT = np.zeros((N, N))
-    V_TOT[:, 0] = v0
-    for i in range(1, N):
+    for i in range(1, M):
         w = B @ V_TOT[:, i-1]
         for j in range(i):
             w -= np.dot(V_TOT[:, j], w) * V_TOT[:, j]
@@ -170,7 +167,7 @@ def krylov_reconstruction(B, min_M, max_M, mode, use_dwave=False):
         v0 = np.random.rand(N)
         v0 = v0 / np.linalg.norm(v0)
 
-        V_TOT = gram_schmidt(N, v0, B)
+        V_TOT = gram_schmidt(N, v0, B, max_M)
 
     for M in range(min_M, max_M + 1):
         energy, division = krylov_iteration(B, M, V_TOT, use_dwave=use_dwave)
@@ -320,20 +317,20 @@ if __name__ == "__main__":
     #     segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
     #     segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
 
-    # img = generate_synthetic_image(40)
+    img = generate_synthetic_image(20)
     # segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
     # segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
 
     # plot_images(img, segmented_img)
     # plt.show()
 
-    img_name = "flower.png"
-    path = os.path.join(os.path.dirname(__file__), "../../img", img_name)
+    # img_name = "flower.png"
+    # path = os.path.join(os.path.dirname(__file__), "../../img", img_name)
 
-    print(path)
+    # print(path)
 
-    img = load_image(path)
-    segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS, use_dwave=True, max_M=5)
+    # img = load_image(path)
+    segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS, use_dwave=False, max_M=5)
 
     plot_images(img, segmented_img)
     plt.show()
