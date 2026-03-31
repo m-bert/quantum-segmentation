@@ -5,15 +5,22 @@ from enum import Enum
 import sys
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.linalg import eig
 
+from collections import defaultdict
+
+from dwave.system.samplers import DWaveSampler
+from dwave.system.composites import FixedEmbeddingComposite
+from dwave.embedding.zephyr import find_clique_embedding
+
 from utils.img_utils import load_image, create_image_from_graph
 from utils.graph_utils import convert_to_graph
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 class Mode(Enum):
     GRAM_SCHMIDT = "gram_schmidt"
     LANCZOS = "lanczos"
@@ -96,25 +103,46 @@ def gram_schmidt(N, v0, B):
 
     return V_TOT
 
-def krylov_iteration(B, M, V_TOT):
+def krylov_iteration(B, M, V_TOT, use_dwave=False):
+    V = None
     B_red = None
+    v_max_red_prime = None
 
     if V_TOT is None:
         v0 = np.random.rand(B.shape[0])
-        V, _, _ = lanczos(B, v0, M)
-        B_red = V.T @ B @ V
+        V, alpha, beta = lanczos(B, v0, M)
+        B_red = np.diag(alpha) + np.diag(beta, 1) + np.diag(beta, -1)
     else:
         V = V_TOT[:,:M]
         B_red = V.T @ B @ V
 
-    eigvals_red, eigvecs_red = eig(B_red)
-    eigvals_red = eigvals_red.real
-    eigvecs_red = eigvecs_red.real
+    if use_dwave:
+        h = defaultdict(int)
+        J = -B_red
 
-    idx = np.argsort(eigvals_red)
-    v_max_red = eigvecs_red[:, idx[-1]]
+        sampler = DWaveSampler("Advantage2_system4.3")
+        embedding = find_clique_embedding(
+            B_red.shape[0],
+            target_graph=sampler.to_networkx_graph()
+        )
 
-    v_max_red_prime = np.sign(v_max_red)
+        sampler = FixedEmbeddingComposite(sampler, embedding=embedding)
+        response = sampler.sample_ising(h, J, num_reads=100)
+
+        print("DWave response:", response.info['timing'])
+
+        v_max_red_prime = np.array(
+            [val for val in response.first.sample.values()]
+        )
+    else:
+        eigvals_red, eigvecs_red = eig(B_red)
+        eigvals_red = eigvals_red.real
+        eigvecs_red = eigvecs_red.real
+
+        idx = np.argsort(eigvals_red)
+        v_max_red = eigvecs_red[:, idx[-1]]
+
+        v_max_red_prime = np.sign(v_max_red)
 
     vr = V @ v_max_red_prime
     vr -= np.mean(vr)
@@ -128,7 +156,7 @@ def krylov_iteration(B, M, V_TOT):
 
     return energy, division
 
-def krylov_reconstruction(B, min_M, max_M, mode):
+def krylov_reconstruction(B, min_M, max_M, mode, use_dwave=False):
     start_time = time.perf_counter()
 
     energies = []
@@ -145,7 +173,7 @@ def krylov_reconstruction(B, min_M, max_M, mode):
         V_TOT = gram_schmidt(N, v0, B)
 
     for M in range(min_M, max_M + 1):
-        energy, division = krylov_iteration(B, M, V_TOT)
+        energy, division = krylov_iteration(B, M, V_TOT, use_dwave=use_dwave)
         energies.append(energy)
         divisions.append(division)
 
@@ -157,7 +185,7 @@ def krylov_reconstruction(B, min_M, max_M, mode):
         "Reconstructed divisions": divisions,
     }
 
-def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mode.LANCZOS, size=None):
+def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mode.LANCZOS, size=None, use_dwave=False):
     M = max_M - min_M + 1
     sign = -1 if minimum else 1
 
@@ -171,7 +199,7 @@ def calculate_average_results(B, min_M, max_M, minimum=True, trials=50, mode=Mod
 
     for i in range(trials):
         t1 = time.perf_counter()
-        approx_solution = krylov_reconstruction(B, min_M, max_M, mode)
+        approx_solution = krylov_reconstruction(B, min_M, max_M, mode, use_dwave=use_dwave)
         t2 = time.perf_counter()
 
         print(f"[{mode.name} | i={i}] Krylov reconstruction took {t2 - t1:.4f} seconds")
@@ -246,14 +274,14 @@ def generate_synthetic_image(size):
 # Main segmentation
 # -------------------------------------------------
 
-def segment_image(img, resolution=1, beta=100, min_M=1, max_M=20, minimum=False, trials=50, mode=Mode.LANCZOS):
+def segment_image(img, resolution=1, beta=100, min_M=1, max_M=20, minimum=False, trials=50, mode=Mode.LANCZOS, use_dwave=False):
     graph = convert_to_graph(img, beta)
 
     B, _ = create_B(graph, resolution=resolution, norm=False)
     print(B.shape)
 
     energies, energy_true, best_energies, communities = calculate_average_results(
-        B, min_M, max_M, minimum, trials, mode, size=img.shape[0]
+        B, min_M, max_M, minimum, trials, mode, size=img.shape[0], use_dwave=use_dwave
     )
 
     fig, ax = plot_average_results(min_M, max_M, energies, energy_true, best_energies)
@@ -285,12 +313,27 @@ if __name__ == "__main__":
     # img = load_image(path)
     # segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
 
-    SIZES = [20, 40, 60, 80, 100, 120]
+    # SIZES = [20, 40, 60, 80, 100, 120]
 
-    for size in SIZES:
-        img = generate_synthetic_image(size)
-        segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
-        segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
+    # for size in SIZES:
+    #     img = generate_synthetic_image(size)
+    #     segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
+    #     segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
+
+    # img = generate_synthetic_image(40)
+    # segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS)
+    # segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.GRAM_SCHMIDT)
 
     # plot_images(img, segmented_img)
     # plt.show()
+
+    img_name = "flower.png"
+    path = os.path.join(os.path.dirname(__file__), "../../img", img_name)
+
+    print(path)
+
+    img = load_image(path)
+    segmented_img, energy_fig, energy_ax = segment_image(img, trials=1, mode=Mode.LANCZOS, use_dwave=True, max_M=5)
+
+    plot_images(img, segmented_img)
+    plt.show()
