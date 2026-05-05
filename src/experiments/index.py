@@ -1,19 +1,18 @@
 import os
-import time
-from enum import Enum
-import json
-
 import sys
+import time
+import json
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from collections import defaultdict
 
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.linalg import eig
-
-from collections import defaultdict
+from sklearn.metrics import normalized_mutual_info_score
 
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import FixedEmbeddingComposite
@@ -23,20 +22,13 @@ from utils.img_utils import load_image, create_image_from_graph
 from utils.graph_utils import convert_to_graph
 from utils.file_utils import maybe_create_output_dir
 
-from sklearn.metrics import normalized_mutual_info_score
-
-def get_results_path(img_name):
-    return os.path.join(os.path.dirname(__file__), "results", img_name)
+from common import Mode, get_results_path, get_image_path
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super().default(obj)
-
-class Mode(Enum):
-    GRAM_SCHMIDT = "gram_schmidt"
-    LANCZOS = "lanczos"
 
 def leading_eigenvector(B):
     eigvals_B, eigvecs_B = eig(B)
@@ -111,8 +103,10 @@ def reduce_modularity_matrix(B, V_TOT, M, mode):
     else:
         V = V_TOT[:, :M]
         B_red = V.T @ B @ V
+
+    orthogonality = np.sum(V.T @ V)
     
-    return B_red, V
+    return B_red, V, orthogonality
 
 def construct_division(B, V, v_max_red_prime):
     vr = V @ v_max_red_prime
@@ -126,7 +120,7 @@ def construct_division(B, V, v_max_red_prime):
     return vr, division, energy
 
 def krylov_iteration_dwave(B, V_TOT,M, mode):
-    B_red, V = reduce_modularity_matrix(B, V_TOT, M, mode)
+    B_red, V, orthogonality = reduce_modularity_matrix(B, V_TOT, M, mode)
     h = defaultdict(int)
     J = -B_red
 
@@ -154,13 +148,14 @@ def krylov_iteration_dwave(B, V_TOT,M, mode):
     return {
         "division": division,
         "leading_v": vr,
+        "orthogonality": orthogonality,
         "energy": energy,
         "problem_id": problem_id,
         "dwave_call_time": end_time - start_time
     }
 
 def krylov_iteration_eigensolver(B, V_TOT, M, mode):
-    B_red, V = reduce_modularity_matrix(B, V_TOT, M, mode)
+    B_red, V, orthogonality = reduce_modularity_matrix(B, V_TOT, M, mode)
     
     eigvals_red, eigvecs_red = eig(B_red)
     eigvals_red = eigvals_red.real
@@ -182,6 +177,7 @@ def krylov_iteration_eigensolver(B, V_TOT, M, mode):
         "energy": energy,
         "leading_v": leading_v,
         "leading_v_shifted": leading_v_shifted,
+        "orthogonality": orthogonality
     }
 
 def krylov_iteration(B, M, V_TOT, mode, use_dwave):
@@ -208,12 +204,6 @@ def krylov_reconstruction(B, min_M, max_M, mode, use_dwave, use_normal_distribut
         "v0": v0,
         "M": data
     }
-
-
-# -------------------------------------------------
-# Plot
-# -------------------------------------------------
-
 
 def plot_images(original_img, segmented_img, img_name, mode, use_dwave):
     _, axs = plt.subplots(1, 2, figsize=(10, 5))
@@ -315,15 +305,13 @@ MODES = [Mode.LANCZOS]
 USE_DWAVE_OPTIONS = [False]
 
 if __name__ == "__main__":
-    # FOR ...
-
     for img_name in IMAGES:
         maybe_create_output_dir(get_results_path(img_name))
 
         for mode in MODES:
             for use_dwave in USE_DWAVE_OPTIONS:
-                path = os.path.join(os.path.dirname(__file__), "..", "..", "img", "krylov_images", f"{img_name}.png")
-                img = load_image(path)
+                img_path = get_image_path(img_name)
+                img = load_image(img_path)
 
                 # Convert image to graph and create modularity matrix
                 graph = convert_to_graph(img, BETA)

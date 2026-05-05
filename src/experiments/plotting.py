@@ -1,12 +1,8 @@
-from enum import Enum
 import matplotlib.pyplot as plt
-import numpy as np
 import os
 import json
 
-class Mode(Enum):
-    GRAM_SCHMIDT = "gram_schmidt"
-    LANCZOS = "lanczos"
+from common import Mode
 
 def prepare_plots(annealer_data, eigensolver_data):
     annealer_color = 'royalblue'
@@ -56,7 +52,7 @@ def prepare_plots(annealer_data, eigensolver_data):
 
 def load_data(img_name, mode, use_dwave=False):
     filename = f"{img_name}_{mode.value}_{'annealer' if use_dwave else 'eigensolver'}.json"
-    path = os.path.join(os.path.dirname(__file__), "results", filename)
+    path = os.path.join(os.path.dirname(__file__), "results", img_name, filename)
 
     with open(path, "r") as f:
         return json.load(f)

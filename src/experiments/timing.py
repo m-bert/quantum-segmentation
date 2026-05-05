@@ -2,9 +2,11 @@ import requests
 import os
 from datetime import datetime
 import json
-from collections import defaultdict
 
+from collections import defaultdict
 from enum import Enum
+
+import pandas as pd
 
 class Mode(Enum):
     GRAM_SCHMIDT = "gram_schmidt"
@@ -32,12 +34,9 @@ def get_total_time(problem_id):
 
     return elapsed.total_seconds(), qpu_time_seconds
 
-problem_id = "d1a7b663-391c-4dc1-828a-4eb171dd43f5"
-print(get_total_time(problem_id))
-
 def load_and_process_data(img_name, mode,):
     filename = f"{img_name}_{mode.value}_annealer.json"
-    path = os.path.join(os.path.dirname(__file__), "results", filename)
+    path = os.path.join(os.path.dirname(__file__), "results", img_name, filename)
 
     timing_data = defaultdict()
 
@@ -60,6 +59,20 @@ def load_and_process_data(img_name, mode,):
     return False
 
 if __name__ == "__main__":
-    data = load_and_process_data("7", Mode.LANCZOS)
+    img_name = "7"
+
+    data = load_and_process_data(img_name, Mode.LANCZOS)
+
+    df = pd.DataFrame.from_dict(data, orient='index')
+    df.index.name = 'M'
+    df.reset_index(inplace=True)
+    
     for M, timing in data.items():
-        print(f"M={M}: D-Wave call time = {timing['dwave_call_time']} seconds, Service time = {timing['service_time']} seconds, QPU time = {timing['qpu_time']} seconds")
+        df.loc[df['M'] == M, 'dwave_call_time'] = timing['dwave_call_time']
+        df.loc[df['M'] == M, 'service_time'] = timing['service_time']
+        df.loc[df['M'] == M, 'qpu_time'] = timing['qpu_time']
+
+    filename = f"{img_name}_timing_data.csv"
+    file_path = os.path.join(os.path.dirname(__file__), "results", img_name, filename)
+
+    df.to_csv(file_path, index=False, sep=';')
