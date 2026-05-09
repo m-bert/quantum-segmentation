@@ -7,6 +7,10 @@ from collections import defaultdict
 from enum import Enum
 
 import pandas as pd
+import matplotlib.pyplot as plt
+
+from common import get_results_path
+
 
 class Mode(Enum):
     GRAM_SCHMIDT = "gram_schmidt"
@@ -58,8 +62,25 @@ def load_and_process_data(img_name, mode,):
     
     return False
 
+def plot_qpu_time(img_name, timing_data):
+    min_m = min(timing_data.keys())
+    max_m = max(timing_data.keys())
+
+    _, ax = plt.subplots(figsize=(8, 5))
+
+    ax.plot(range(min_m, max_m + 1), [timing_data[M]["qpu_time"] * 1000 for M in range(min_m, max_m + 1)], '-o', markersize=3, label='Annealer', color='royalblue')
+    ax.set_xlabel("M")
+    ax.set_xticks(range(min_m, max_m + 1))
+    ax.set_ylabel("Time (ms)")
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title('QPU Time vs Krylov subspace dimension')
+    ax.grid(True)
+
+    path = get_results_path(img_name)
+    plt.savefig(os.path.join(path, f"{img_name}_qpu_time.png"), dpi=300)
+
 if __name__ == "__main__":
-    img_name = "7"
+    img_name = "bubbles"
 
     data = load_and_process_data(img_name, Mode.LANCZOS)
 
@@ -76,3 +97,5 @@ if __name__ == "__main__":
     file_path = os.path.join(os.path.dirname(__file__), "results", img_name, filename)
 
     df.to_csv(file_path, index=False, sep=';')
+
+    plot_qpu_time(img_name, data)
