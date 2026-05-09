@@ -276,12 +276,13 @@ def postprocess_data(reconstruction_data, G, ground_truth):
         data["NMI"] = normalized_mutual_info_score(gt_labels, comm_labels)
 
 def generate_segmented_image(graph, communities):
+    segmented_graph = graph.copy()
     for community in communities:
         community_color = np.random.randint(0, 255, size=3)
         for node in community:
-            graph.nodes[node]['color'] = community_color
+            segmented_graph.nodes[node]['color'] = community_color
 
-    new_img = create_image_from_graph(graph, img.shape[:2])
+    new_img = create_image_from_graph(segmented_graph, img.shape[:2])
 
     return new_img
 
@@ -297,28 +298,30 @@ RESOLUTION = 1
 MIN_M = 2
 MAX_M = 20
 
+MODES = [Mode.LANCZOS, Mode.GRAM_SCHMIDT]
 # IMAGES = ["bubbles", "windows", "maze", "desert"]
+USE_DWAVE_OPTIONS = [True, False]
+# IMAGES = ["bubbles"]
+# MODES = [Mode.GRAM_SCHMIDT]
+IMAGES = ["window", "maze"]
+# IMAGES = ["7"]
 # MODES = [Mode.LANCZOS, Mode.GRAM_SCHMIDT]
-# USE_DWAVE_OPTIONS = [True, False]
-IMAGES = ["7"]
-MODES = [Mode.LANCZOS]
-USE_DWAVE_OPTIONS = [False]
+# USE_DWAVE_OPTIONS = [False]
 
 if __name__ == "__main__":
     for img_name in IMAGES:
+        img_path = get_image_path(img_name)
+        img = load_image(img_path)
+
+        graph = convert_to_graph(img, BETA)
+        modularity_matrix = create_B(graph, resolution=RESOLUTION)
+        ground_truth = prepare_ground_truth(img, modularity_matrix, graph)
+
         maybe_create_output_dir(get_results_path(img_name))
 
         for mode in MODES:
             for use_dwave in USE_DWAVE_OPTIONS:
-                img_path = get_image_path(img_name)
-                img = load_image(img_path)
-
                 # Convert image to graph and create modularity matrix
-                graph = convert_to_graph(img, BETA)
-                modularity_matrix = create_B(graph, resolution=RESOLUTION)
-
-                ground_truth = prepare_ground_truth(img, modularity_matrix, graph)
-
                 reconstruction_data = krylov_reconstruction(modularity_matrix, MIN_M, MAX_M, mode, use_dwave)
                 postprocess_data(reconstruction_data, graph, ground_truth)
                 save_to_file(img_name, mode, use_dwave, reconstruction_data)
