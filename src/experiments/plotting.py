@@ -2,18 +2,18 @@ import matplotlib.pyplot as plt
 import os
 import json
 
-from common import Mode
+from common import Mode, get_results_path
+from utils.file_utils import maybe_create_output_dir
 
-def prepare_plots(annealer_data, eigensolver_data):
+def prepare_score_plots(img_name, annealer_data, eigensolver_data, save_plots):
     annealer_color = 'royalblue'
     eigensolver_color = 'limegreen'
-    eigensolver_shifted_color = 'forestgreen'
     ground_truth_color = 'red'
 
     min_m = annealer_data["min_M"]
     max_m = annealer_data["max_M"]
 
-    fig, ax = plt.subplots(1, 4, figsize=(16, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
     ax[0].plot(range(min_m, max_m+1), annealer_data["modularities"], '-o', markersize=3, label='Annealer', color=annealer_color)
     ax[0].plot(range(min_m, max_m+1), eigensolver_data["modularities"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
@@ -26,40 +26,70 @@ def prepare_plots(annealer_data, eigensolver_data):
     ax[0].legend(loc='lower right')
     ax[0].grid(True)
 
-    ax[1].plot(range(min_m, max_m + 1), annealer_data["cosine_similarities"], '-o', markersize=3, label='Annealer', color=annealer_color)
-    ax[1].plot(range(min_m, max_m + 1), eigensolver_data["cosine_similarities"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
-    ax[1].plot(range(min_m, max_m + 1), eigensolver_data["cosine_similarities_shifted"], '-o', markersize=3, label='Eigensolver Shifted', color=eigensolver_shifted_color)
+    ax[1].plot(range(min_m, max_m + 1), annealer_data["NMIs"], '-o', markersize=3, label='Annealer', color=annealer_color)
+    ax[1].plot(range(min_m, max_m + 1), eigensolver_data["NMIs"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
     ax[1].set_xlabel("M")
     ax[1].set_xticks(range(min_m, max_m + 1))
-    ax[1].set_ylabel("Cosine similarity with leading eigenvector")
+    ax[1].set_ylabel("Normalized Mutual Information (NMI)")
     ax[1].spines[["top", "right"]].set_visible(False)
-    ax[1].set_title("Cosine similarity vs Krylov subspace dimension")
+    ax[1].set_title("NMI vs Krylov subspace dimension")
     ax[1].legend(loc='lower right')
     ax[1].grid(True)
 
-    ax[2].plot(range(min_m, max_m + 1), annealer_data["NMIs"], '-o', markersize=3, label='Annealer', color=annealer_color)
-    ax[2].plot(range(min_m, max_m + 1), eigensolver_data["NMIs"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
-    ax[2].set_xlabel("M")
-    ax[2].set_xticks(range(min_m, max_m + 1))
-    ax[2].set_ylabel("Normalized Mutual Information (NMI)")
-    ax[2].spines[["top", "right"]].set_visible(False)
-    ax[2].set_title("NMI vs Krylov subspace dimension")
-    ax[2].legend(loc='lower right')
-    ax[2].grid(True)
+    fig.tight_layout()
 
-    ax[3].plot(range(min_m, max_m + 1), annealer_data["orthogonality"], '-o', markersize=3, label='Annealer', color=annealer_color)
-    ax[3].plot(range(min_m, max_m + 1), eigensolver_data["orthogonality"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
-    ax[3].plot(range(min_m, max_m + 1), range(min_m, max_m + 1), '--', color=ground_truth_color, label='Ideal Orthogonality')
-    ax[3].set_xlabel("M")
-    ax[3].set_xticks(range(min_m, max_m + 1))
-    ax[3].set_ylabel("Orthogonality")
-    ax[3].spines[["top", "right"]].set_visible(False)
-    ax[3].set_title("Orthogonality vs Krylov subspace dimension")
-    ax[3].legend(loc='lower right')
-    ax[3].grid(True)
+    if save_plots:
+        path = get_results_path(img_name)
+        plt.savefig(os.path.join(path, "plots", f"{img_name}_score_plots.png"), dpi=300)
+
+    return fig, ax
+
+def prepare_accuracy_plots(img_name, annealer_data, eigensolver_data, save_plots):
+    annealer_color = 'royalblue'
+    eigensolver_color = 'limegreen'
+    eigensolver_shifted_color = 'forestgreen'
+    ground_truth_color = 'red'
+
+    min_m = annealer_data["min_M"]
+    max_m = annealer_data["max_M"]
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+    ax[0].plot(range(min_m, max_m + 1), annealer_data["cosine_similarities"], '-o', markersize=3, label='Annealer', color=annealer_color)
+    ax[0].plot(range(min_m, max_m + 1), eigensolver_data["cosine_similarities"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
+    ax[0].plot(range(min_m, max_m + 1), eigensolver_data["cosine_similarities_shifted"], '-o', markersize=3, label='Eigensolver Shifted', color=eigensolver_shifted_color)
+    ax[0].set_xlabel("M")
+    ax[0].set_xticks(range(min_m, max_m + 1))
+    ax[0].set_ylabel("Cosine similarity with leading eigenvector")
+    ax[0].spines[["top", "right"]].set_visible(False)
+    ax[0].set_title("Cosine similarity vs Krylov subspace dimension")
+    ax[0].legend(loc='lower right')
+    ax[0].grid(True)
+
+    ax[1].plot(range(min_m, max_m + 1), annealer_data["orthogonality"], '-o', markersize=3, label='Annealer', color=annealer_color)
+    ax[1].plot(range(min_m, max_m + 1), eigensolver_data["orthogonality"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
+    ax[1].plot(range(min_m, max_m + 1), range(min_m, max_m + 1), '--', color=ground_truth_color, label='Ideal Orthogonality')
+    ax[1].set_xlabel("M")
+    ax[1].set_xticks(range(min_m, max_m + 1))
+    ax[1].set_ylabel("Orthogonality")
+    ax[1].spines[["top", "right"]].set_visible(False)
+    ax[1].set_title("Orthogonality vs Krylov subspace dimension")
+    ax[1].legend(loc='lower right')
+    ax[1].grid(True)
 
     fig.tight_layout()
+
+    if save_plots:
+        path = get_results_path(img_name)
+        plt.savefig(os.path.join(path, "plots", f"{img_name}_accuracy_plots.png"), dpi=300)
+
     return fig, ax
+
+def prepare_plots(img_name, annealer_data, eigensolver_data, save_plots):
+    score_fig, score_ax = prepare_score_plots(img_name, annealer_data, eigensolver_data, save_plots)
+    accuracy_fig, accuracy_ax = prepare_accuracy_plots(img_name, annealer_data, eigensolver_data, save_plots)
+
+    return (score_fig, score_ax), (accuracy_fig, accuracy_ax)
 
 def load_data(img_name, mode, use_dwave=False):
     filename = f"{img_name}_{mode.value}_{'annealer' if use_dwave else 'eigensolver'}.json"
@@ -98,16 +128,24 @@ def preprocess_data(data):
         "orthogonality": orthogonalities
     }
 
-def plot_results(img_name, mode):
+def plot_results(img_name, mode, save_plots):
     annealer_data = load_data(img_name, mode, True)
     eigensolver_data = load_data(img_name, mode, False)
     
     annealer_data = preprocess_data(annealer_data)
     eigensolver_data = preprocess_data(eigensolver_data)
 
-    prepare_plots(annealer_data, eigensolver_data)
+    if save_plots:
+        path = get_results_path(img_name)
+        maybe_create_output_dir(os.path.join(path, "plots"))
 
-    plt.show()
+    prepare_plots(img_name, annealer_data, eigensolver_data, save_plots)
+
+    if not save_plots:
+        plt.show()
 
 if __name__ == "__main__":
-    plot_results("bubbles", Mode.LANCZOS)
+    img_name = "bubbles"
+    mode = Mode.LANCZOS
+    
+    plot_results(img_name, mode, save_plots=True)

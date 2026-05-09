@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from common import get_results_path
+from utils.file_utils import maybe_create_output_dir
 
 
 class Mode(Enum):
@@ -77,7 +78,8 @@ def plot_qpu_time(img_name, timing_data):
     ax.grid(True)
 
     path = get_results_path(img_name)
-    plt.savefig(os.path.join(path, f"{img_name}_qpu_time.png"), dpi=300)
+    maybe_create_output_dir(os.path.join(path, "plots"))
+    plt.savefig(os.path.join(path, "plots", f"{img_name}_qpu_time.png"), dpi=300)
 
 if __name__ == "__main__":
     img_name = "bubbles"
