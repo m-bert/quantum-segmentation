@@ -13,7 +13,7 @@ def prepare_plots(annealer_data, eigensolver_data):
     min_m = annealer_data["min_M"]
     max_m = annealer_data["max_M"]
 
-    fig, ax = plt.subplots(1, 3, figsize=(12, 5))
+    fig, ax = plt.subplots(1, 4, figsize=(16, 5))
 
     ax[0].plot(range(min_m, max_m+1), annealer_data["modularities"], '-o', markersize=3, label='Annealer', color=annealer_color)
     ax[0].plot(range(min_m, max_m+1), eigensolver_data["modularities"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
@@ -47,6 +47,17 @@ def prepare_plots(annealer_data, eigensolver_data):
     ax[2].legend(loc='lower right')
     ax[2].grid(True)
 
+    ax[3].plot(range(min_m, max_m + 1), annealer_data["orthogonality"], '-o', markersize=3, label='Annealer', color=annealer_color)
+    ax[3].plot(range(min_m, max_m + 1), eigensolver_data["orthogonality"], '-o', markersize=3, label='Eigensolver', color=eigensolver_color)
+    ax[3].plot(range(min_m, max_m + 1), range(min_m, max_m + 1), '--', color=ground_truth_color, label='Ideal Orthogonality')
+    ax[3].set_xlabel("M")
+    ax[3].set_xticks(range(min_m, max_m + 1))
+    ax[3].set_ylabel("Orthogonality")
+    ax[3].spines[["top", "right"]].set_visible(False)
+    ax[3].set_title("Orthogonality vs Krylov subspace dimension")
+    ax[3].legend(loc='lower right')
+    ax[3].grid(True)
+
     fig.tight_layout()
     return fig, ax
 
@@ -66,11 +77,13 @@ def preprocess_data(data):
     cosine_similarities = []
     cosine_similarities_shifted = []
     NMIs = []
+    orthogonalities = []
 
     for M in range(data["min_M"], data["max_M"] + 1):
         modularities.append(m_data[str(M)]["modularity"])
         NMIs.append(m_data[str(M)]["NMI"])
-        cosine_similarities.append(m_data[str(M)]["cosine_similarity"])
+        cosine_similarities.append(m_data[str(M)]["cosine_similarity"]) 
+        orthogonalities.append(m_data[str(M)]["orthogonality"])
         if "cosine_similarity_shifted" in m_data[str(M)]:
             cosine_similarities_shifted.append(m_data[str(M)]["cosine_similarity_shifted"])
 
@@ -81,7 +94,8 @@ def preprocess_data(data):
         "modularities": modularities,
         "cosine_similarities": cosine_similarities,
         "cosine_similarities_shifted": cosine_similarities_shifted,
-        "NMIs": NMIs
+        "NMIs": NMIs,
+        "orthogonality": orthogonalities
     }
 
 def plot_results(img_name, mode):
@@ -96,4 +110,4 @@ def plot_results(img_name, mode):
     plt.show()
 
 if __name__ == "__main__":
-    plot_results("7", Mode.LANCZOS)
+    plot_results("bubbles", Mode.LANCZOS)
