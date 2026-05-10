@@ -5,7 +5,7 @@ import json
 from common import Mode, get_results_path
 from utils.file_utils import maybe_create_output_dir
 
-def prepare_score_plots(img_name, annealer_data, eigensolver_data, save_plots):
+def prepare_score_plots(img_name, mode, annealer_data, eigensolver_data, save_plots):
     annealer_color = 'royalblue'
     eigensolver_color = 'limegreen'
     ground_truth_color = 'red'
@@ -40,11 +40,11 @@ def prepare_score_plots(img_name, annealer_data, eigensolver_data, save_plots):
 
     if save_plots:
         path = get_results_path(img_name)
-        plt.savefig(os.path.join(path, "plots", f"{img_name}_score_plots.png"), dpi=300)
+        plt.savefig(os.path.join(path, "plots", f"{img_name}_{mode.value}_score_plots.png"), dpi=300)
 
     return fig, ax
 
-def prepare_accuracy_plots(img_name, annealer_data, eigensolver_data, save_plots):
+def prepare_accuracy_plots(img_name, mode, annealer_data, eigensolver_data, save_plots):
     annealer_color = 'royalblue'
     eigensolver_color = 'limegreen'
     eigensolver_shifted_color = 'forestgreen'
@@ -81,13 +81,13 @@ def prepare_accuracy_plots(img_name, annealer_data, eigensolver_data, save_plots
 
     if save_plots:
         path = get_results_path(img_name)
-        plt.savefig(os.path.join(path, "plots", f"{img_name}_accuracy_plots.png"), dpi=300)
+        plt.savefig(os.path.join(path, "plots", f"{img_name}_{mode.value}_accuracy_plots.png"), dpi=300)
 
     return fig, ax
 
-def prepare_plots(img_name, annealer_data, eigensolver_data, save_plots):
-    score_fig, score_ax = prepare_score_plots(img_name, annealer_data, eigensolver_data, save_plots)
-    accuracy_fig, accuracy_ax = prepare_accuracy_plots(img_name, annealer_data, eigensolver_data, save_plots)
+def prepare_plots(img_name, mode, annealer_data, eigensolver_data, save_plots):
+    score_fig, score_ax = prepare_score_plots(img_name, mode, annealer_data, eigensolver_data, save_plots)
+    accuracy_fig, accuracy_ax = prepare_accuracy_plots(img_name, mode, annealer_data, eigensolver_data, save_plots)
 
     return (score_fig, score_ax), (accuracy_fig, accuracy_ax)
 
@@ -139,13 +139,17 @@ def plot_results(img_name, mode, save_plots):
         path = get_results_path(img_name)
         maybe_create_output_dir(os.path.join(path, "plots"))
 
-    prepare_plots(img_name, annealer_data, eigensolver_data, save_plots)
+    prepare_plots(img_name, mode, annealer_data, eigensolver_data, save_plots)
 
     if not save_plots:
         plt.show()
 
 if __name__ == "__main__":
-    img_name = "bubbles"
-    mode = Mode.LANCZOS
-    
-    plot_results(img_name, mode, save_plots=True)
+    # img_name = "bubbles"
+    # mode = Mode.LANCZOS
+
+    # plot_results(img_name, mode, save_plots=True)
+
+    for img_name in ["bubbles", "window", "maze", "desert"]:
+        for mode in [Mode.LANCZOS, Mode.GRAM_SCHMIDT]:
+            plot_results(img_name, mode, save_plots=True)
