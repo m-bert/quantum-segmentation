@@ -251,6 +251,7 @@ def prepare_ground_truth(img, modularity_matrix, graph):
 def postprocess_data(reconstruction_data, G, ground_truth):
     reconstruction_data["min_M"] = min(int(k) for k in reconstruction_data["M"].keys())
     reconstruction_data["max_M"] = max(int(k) for k in reconstruction_data["M"].keys())
+    reconstruction_data["best_M"] =  max(reconstruction_data["M"], key=lambda m: reconstruction_data["M"][m]["energy"])
     reconstruction_data["ground_truth_modularity"] = ground_truth["modularity"]
 
     all_nodes = set()
@@ -299,13 +300,12 @@ MIN_M = 2
 MAX_M = 20
 
 MODES = [Mode.LANCZOS, Mode.GRAM_SCHMIDT]
-# IMAGES = ["bubbles", "windows", "maze", "desert"]
+# IMAGES = ["bubbles", "window", "maze", "desert"]
+IMAGES = ["window", "maze", "desert"]
 USE_DWAVE_OPTIONS = [True, False]
-# IMAGES = ["bubbles"]
-# MODES = [Mode.GRAM_SCHMIDT]
-IMAGES = ["window", "maze"]
+
 # IMAGES = ["7"]
-# MODES = [Mode.LANCZOS, Mode.GRAM_SCHMIDT]
+# MODES = [Mode.GRAM_SCHMIDT]
 # USE_DWAVE_OPTIONS = [False]
 
 if __name__ == "__main__":
@@ -326,7 +326,8 @@ if __name__ == "__main__":
                 postprocess_data(reconstruction_data, graph, ground_truth)
                 save_to_file(img_name, mode, use_dwave, reconstruction_data)
 
-                communities = max(reconstruction_data["M"].values(), key=lambda d: d["energy"])["division"]
+                best_M = reconstruction_data["best_M"]
+                communities = reconstruction_data["M"][best_M]["division"]
                 segmented_img = generate_segmented_image(graph, communities)
 
                 plot_images(img, segmented_img, img_name, mode, use_dwave)
